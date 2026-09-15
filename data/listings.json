@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-09-15T17:19:00+02:00",
+  "updatedAt": "2026-09-15T17:50:00+02:00",
   "listings": [
     {
       "id": "H001", "source": "ORPI", "url": "https://www.orpi.com/annonce-vente-appartement-t2-hoenheim-67800-b818dd71-9d0e-4553-9896-b4ede0a819df/", "city": "Hœnheim", "area": "Rue Aristide Briand", "type": "T2", "surface": 51.37, "price": 125000, "dpe": "D", "chargesAnnual": 2400, "propertyTax": 500, "rentEstimateHC": 720, "marketPriceM2": 2255, "free": true, "coproStatus": "unknown", "works": 0, "firstSeen": "2026-09-15", "lastSeen": "2026-09-15", "priceHistory": [{"date":"2026-09-15","price":125000}], "notes": ["Balcon/loggia", "Cave", "Libre immédiatement"], "images": ["https://cutjhqvjma.cloudimg.io/_prod_/sweepbright-s3/b818dd71-9d0e-4553-9896-b4ede0a819df--15576364-7c81-47f6-8429-4ce4b63b4524.jpg?ci_sign=f0f9bc88884d7c778536ddc93d4e657169a02777&ci_url_encoded=1&p=default"]
@@ -16,6 +16,9 @@
     },
     {
       "id": "H005", "source": "SAFTI", "url": "https://www.casagogo.fr/annonces/vente/67100-strasbourg/appartement-52m2-2-pieces/15758021", "city": "Strasbourg", "area": "Hautepierre Centre", "type": "T2", "surface": 52, "price": 124900, "dpe": "C", "chargesAnnual": 1955, "propertyTax": null, "rentEstimateHC": 540, "marketPriceM2": null, "free": true, "coproStatus": "clean", "works": 0, "firstSeen": "2026-09-15", "lastSeen": "2026-09-15", "priceHistory": [{"date":"2026-09-15","price":124900}], "notes": ["Libre", "Tram à 350 m", "Ravalement/isolation et fenêtres 2020", "Travaux de résidentialisation votés", "Charges incluant chauffage et ECS", "Copropriété 325 lots sans procédure déclarée", "Loyer HC Houser prudent ~540 € à confirmer par comparables plus précis"], "images": []
+    },
+    {
+      "id": "H006", "source": "Century 21 / SeLoger", "url": "https://www.seloger.com/annonce/achat/grand-est/bas-rhin-67/strasbourg-67000/26I31IX8W9SY", "city": "Strasbourg", "area": "Meinau - Avenue de Colmar", "type": "T2", "surface": 42.08, "price": 150000, "dpe": "C", "chargesAnnual": 1084.68, "propertyTax": null, "rentEstimateHC": 650, "marketPriceM2": null, "free": true, "coproStatus": "clean", "works": 0, "firstSeen": "2026-09-15", "lastSeen": "2026-09-15", "priceHistory": [{"date":"2026-09-15","price":150000}], "notes": ["Première occupation / habitable immédiatement", "Rez-de-jardin avec terrasse et jardin privatifs", "Tram proche", "Charges ~90 €/mois soit ~25,8 €/m²/an", "140 lots, aucune procédure en cours", "DPE C", "Loyer HC Houser prudent ~650 € à confirmer", "Pas un match autofinancement au prix affiché; conservé en base pour suivi de baisse"], "images": []
     }
   ]
 }
