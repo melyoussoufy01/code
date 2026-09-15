@@ -5,8 +5,35 @@ BOT_TOKEN=os.getenv('TELEGRAM_BOT_TOKEN','').strip()
 CHAT_ID=os.getenv('TELEGRAM_CHAT_ID','').strip()
 HOUSER_URL='https://melyoussoufy01.github.io/code/'
 
-if not BOT_TOKEN or not CHAT_ID:
-    print('Telegram secrets missing; skipping notification.')
+if not BOT_TOKEN:
+    print('TELEGRAM_BOT_TOKEN missing; skipping notification.')
+    raise SystemExit(0)
+
+
+def api_get(method):
+    endpoint=f'https://api.telegram.org/bot{BOT_TOKEN}/{method}'
+    with urllib.request.urlopen(endpoint, timeout=20) as r:
+        return json.loads(r.read().decode())
+
+
+def resolve_chat_id():
+    global CHAT_ID
+    if CHAT_ID:
+        return CHAT_ID
+    try:
+        data=api_get('getUpdates')
+        updates=data.get('result') or []
+        for upd in reversed(updates):
+            msg=upd.get('message') or upd.get('edited_message') or upd.get('channel_post') or {}
+            chat=msg.get('chat') or {}
+            cid=chat.get('id')
+            if cid is not None:
+                CHAT_ID=str(cid)
+                print('Telegram chat id auto-detected from latest update.')
+                return CHAT_ID
+    except Exception as exc:
+        print(f'Unable to auto-detect Telegram chat id: {exc}')
+    print('No Telegram chat found yet. Open the bot and send /start once, then rerun the workflow.')
     raise SystemExit(0)
 
 
@@ -44,7 +71,6 @@ def calc(x):
     net_month=net_annual/12
     effort=payment-net_month
     gross=rent*12/price
-    # Approximate price cap for neutral cash flow under the same favorable proxy.
     factor=annuity(1,0.04,20)*0.80*1.08
     neutral_price=max(0,net_month/factor) if factor else 0
     return {'payment':payment,'net_month':net_month,'effort':effort,'gross':gross,'neutral_price':neutral_price}
@@ -55,8 +81,9 @@ def euro(v):
 
 
 def send(text):
+    chat_id=resolve_chat_id()
     endpoint=f'https://api.telegram.org/bot{BOT_TOKEN}/sendMessage'
-    payload=urllib.parse.urlencode({'chat_id':CHAT_ID,'text':text,'disable_web_page_preview':'true'}).encode()
+    payload=urllib.parse.urlencode({'chat_id':chat_id,'text':text,'disable_web_page_preview':'true'}).encode()
     req=urllib.request.Request(endpoint,data=payload,method='POST')
     with urllib.request.urlopen(req,timeout=20) as r:
         print(r.read().decode())
@@ -76,7 +103,6 @@ for x in current.get('listings',[]):
     old_price=float(old.get('price') or 0) if old else 0
     price=float(x.get('price') or 0)
     drop=(old_price-price)/old_price if old_price and price<old_price else 0
-    # Telegram only for genuinely actionable deals.
     actionable=metrics['effort']<=100
     meaningful_drop=drop>=0.03 and metrics['effort']<=150
     explicit=bool(x.get('telegramNotify'))
