@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-09-16T00:19:26+02:00",
+  "updatedAt": "2026-09-16T01:13:23+02:00",
   "scanStats": {
-    "lastScanAt": "2026-09-16T00:19:26+02:00",
-    "candidatesExamined": 29,
+    "lastScanAt": "2026-09-16T01:13:23+02:00",
+    "candidatesExamined": 31,
     "compatibleCount": 0,
     "addedCount": 0,
     "updatedCount": 0,
     "matchesCount": 0,
-    "sourcesChecked": ["seloger.com", "orpi.com", "fnaim.fr", "iadfrance.fr", "laforet.com", "idealista.fr", "superimmo.com", "logic-immo.com", "etreproprio.com", "csf-logement.fr", "jundimmobilier.fr"]
+    "sourcesChecked": ["seloger.com", "logic-immo.com", "superimmo.com", "etreproprio.com", "idealista.fr", "groupimmo.pro", "properstar.fr", "meilleursagents.com", "immobilier.lefigaro.fr"]
   },
   "listings": [
     {"id":"H001","source":"ORPI","url":"https://www.orpi.com/annonce-vente-appartement-t2-hoenheim-67800-b818dd71-9d0e-4553-9896-b4ede0a819df/","city":"Hœnheim","area":"Rue Aristide Briand","type":"T2","surface":51.37,"price":125000,"dpe":"D","chargesAnnual":2200,"propertyTax":500,"rentEstimateHC":720,"marketPriceM2":2255,"free":true,"coproStatus":"unknown","works":0,"firstSeen":"2026-09-15","lastSeen":"2026-09-16","priceHistory":[{"date":"2026-09-15","price":125000}],"notes":["Balcon/loggia","Cave","Libre immédiatement","Annonce ORPI actuelle: charges annuelles 2 200 €; descriptif mentionne aussi 200 €/mois chauffage/eaux inclus, à clarifier avant offre"],"images":["https://cutjhqvjma.cloudimg.io/_prod_/sweepbright-s3/b818dd71-9d0e-4553-9896-b4ede0a819df--15576364-7c81-47f6-8429-4ce4b63b4524.jpg?ci_sign=f0f9bc88884d7c778536ddc93d4e657169a02777&ci_url_encoded=1&p=default"]},
