@@ -1,21 +1,150 @@
-<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Houser</title><style>
-:root{font-family:Inter,system-ui,sans-serif;color:#111827;background:#f5f7fb}*{box-sizing:border-box}body{margin:0}.app{max-width:1120px;margin:auto;padding:20px}.top{display:flex;justify-content:space-between;gap:14px;align-items:center;margin-bottom:18px}.brand{display:flex;gap:10px;align-items:center}.logo{width:42px;height:42px;border-radius:13px;background:#111827;color:#fff;display:grid;place-items:center;font-size:22px}.tabs,.actions{display:flex;gap:8px;flex-wrap:wrap}.btn{border:1px solid #d1d5db;background:#fff;border-radius:11px;padding:10px 13px;font-weight:700;cursor:pointer}.btn.on,.btn.primary{background:#111827;color:#fff;border-color:#111827}.card{background:#fff;border:1px solid #e5e7eb;border-radius:18px;padding:17px}.grid{display:grid;gap:14px}.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}.g4{grid-template-columns:repeat(4,minmax(0,1fr))}.muted{color:#6b7280}.small{font-size:12px}.metric b{font-size:20px}.listing{display:grid;grid-template-columns:1.2fr .8fr;gap:14px}.title{display:flex;justify-content:space-between;gap:12px}.price{font-size:26px;font-weight:900}.good{color:#047857}.mid{color:#b45309}.bad{color:#b91c1c}.why,.nego{border-radius:14px;padding:14px}.why{background:#f9fafb;border:1px solid #e5e7eb}.nego{background:#111827;color:#fff}.line{display:flex;justify-content:space-between;gap:12px;margin:7px 0}.short{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #e5e7eb}.hidden{display:none}input{width:100%;padding:10px;border:1px solid #d1d5db;border-radius:10px;font-size:15px}.field label{display:block;font-size:12px;font-weight:800;margin-bottom:5px}@media(max-width:800px){.listing,.g4,.g3,.g2{grid-template-columns:1fr}.top,.title{align-items:flex-start;flex-direction:column}.app{padding:12px}}
-</style></head><body><div id="app"></div><script>
-const listings=[
-{id:'H001',city:'Hœnheim',area:'Rue Aristide Briand',price:130000,sqm:51.37,dpe:'D',charges:2400,tax:500,rent:708,market:2255,free:true,copro:'unknown',works:0,notes:['Balcon/loggia','Cave','Libre immédiatement'],source:'https://www.orpi.com/annonce-vente-appartement-t2-hoenheim-67800-b818dd71-9d0e-4553-9896-b4ede0a819df/'},
-{id:'H002',city:'Lingolsheim',area:'Écoquartier',price:134900,sqm:45.41,dpe:'B',charges:1058,tax:741,rent:604,market:2410,free:true,copro:'clean',works:0,notes:['Immeuble 2012','2 stationnements','DPE B'],source:'https://www.squarehabitat.fr/annonces/achat/bien/appartement/immobilier/grand-est/bas-rhin-67'},
-{id:'H003',city:'Ostwald',area:'Rives du Bohrie',price:158000,sqm:48,dpe:'C',charges:1743,tax:750,rent:670,market:2662,free:true,copro:'clean',works:0,notes:['Résidence 2020','Tram','Terrasse + parking'],source:'https://www.seloger.com/annonces/achat/appartement/ostwald-67/est/273869061.htm'},
-{id:'H004',city:'Bischheim',area:'Centre',price:129000,sqm:38,dpe:'C',charges:850,tax:700,rent:516,market:2551,free:true,copro:'clean',works:0,notes:['Petite copro','Terrasse','Bon état'],source:'https://www.hebdingimmobilier.fr/vente/10-bischheim/appartement/t2/2146-appartement-2-pieces-avec-terrasse-et-parking-immeuble-moderne-de-standing/'}];
-let p=JSON.parse(localStorage.getItem('houserProfile')||'null')||{maxBudget:150000,target:0.065,maxCharges:140,maxChargesM2:35,down:25000};
-let decisions=JSON.parse(localStorage.getItem('houserDecisions')||'{}');let view='feed',showAll=false,idx=0,ranked=[];
-const €=n=>new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(n||0), pct=n=>(n*100).toFixed(1)+' %',clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
-function calc(x){let ppm=x.price/x.sqm,g=x.rent*12/x.price,cm=x.charges/12,cpm=x.charges/x.sqm,yp=x.rent*12/p.target,mp=x.market*x.sqm,rf=1;if(x.dpe==='E')rf-=.06;if(x.copro==='unknown')rf-=.03;if(cm>p.maxCharges)rf-=.04;if(cm>220)rf-=.08;let rap=mp*rf-x.works,h=Math.max(0,Math.round(Math.min(yp,rap)/1000)*1000),disc=1-h/x.price,nonrec=x.charges*.35,vac=x.rent*12*.03,maint=x.rent*12*.05,net=x.rent*12-nonrec-x.tax-vac-maint-120,ny=net/(x.price+x.price*.08+x.works);let s=50;s+=clamp((g-.055)*900,-18,18)+clamp((ny-.035)*700,-12,12)+clamp(((x.market-ppm)/x.market)*35,-12,12);if(cm<=100&&cpm<=28)s+=10;else if(cm<=p.maxCharges&&cpm<=p.maxChargesM2)s+=5;else if(cm<=220&&cpm<=50)s-=8;else s-=20;if(['A','B','C'].includes(x.dpe))s+=7;else if(x.dpe==='D')s+=3;else if(x.dpe==='E')s-=8;else s-=25;if(x.copro==='clean')s+=4;else if(x.copro==='unknown')s-=3;else s-=20;if(x.price>p.maxBudget)s-=10;if(disc>.18)s-=8;s=Math.round(clamp(s,0,100));let v=s>=72?'🟢 MATCH':s>=55?'🟠 À CREUSER':'🔴 PASSER';if(!x.free||['F','G'].includes(x.dpe)||x.copro==='risk')v='🔴 PASSER';let mode=disc<=.05?'Réaliste':disc<=.12?'Négociable':'Difficile aujourd’hui',open=Math.round(h*(disc<=.05?.985:disc<=.12?.96:.95)/1000)*1000;return {...x,ppm,g,cm,cpm,yp,mp,rap,h,disc,net,ny,s,v,mode,open}}
-function rerank(){ranked=listings.map(calc).sort((a,b)=>b.s-a.s);if(!showAll)ranked=ranked.filter(x=>x.s>=55);idx=0}
-function top(){return `<div class="top"><div class="brand"><div class="logo">⌂</div><div><b style="font-size:24px">Houser</b><div class="muted small">Swipe properties, not problems.</div></div></div><div class="tabs"><button class="btn ${view==='criteria'?'on':''}" data-v="criteria">Mes critères</button><button class="btn ${view==='feed'?'on':''}" data-v="feed">Top matches</button><button class="btn ${view==='short'?'on':''}" data-v="short">À creuser</button></div></div>`}
-function criteria(){return `<div class="grid g2"><section class="card"><h2>Profil prérempli</h2><p class="muted">Bien libre obligatoire · Mourabaha · mobilité Strasbourg/Suisse.</p><div class="grid g2"><div class="field"><label>Budget max</label><input data-p="maxBudget" value="${p.maxBudget}"></div><div class="field"><label>Rendement brut cible %</label><input data-p="target" value="${p.target*100}"></div><div class="field"><label>Charges cible €/mois</label><input data-p="maxCharges" value="${p.maxCharges}"></div><div class="field"><label>Charges cible €/m²/an</label><input data-p="maxChargesM2" value="${p.maxChargesM2}"></div></div></section><section class="card"><h3>Kill switches</h3><p>🔴 occupé · 🔴 DPE F/G · 🔴 procédure copro sérieuse · 🔴 gros travaux Mourabaha · 🔴 charges anormalement hautes</p><p class="muted">Objectif : cash-flow proche de 0 ; effort ≤100 €/mois seulement si actif très qualitatif.</p></section></div>`}
-function feed(){if(!ranked.length)return `<div class="card">Aucun match assez bon. Houser préfère ne rien montrer.</div>`;let x=ranked[idx],c=x.s>=72?'good':x.s>=55?'mid':'bad';return `<div class="line"><b>Meilleurs biens d’abord</b><label class="small"><input style="width:auto" id="all" type="checkbox" ${showAll?'checked':''}> voir aussi les rouges</label></div><article class="listing"><section class="card"><div class="title"><div><div class="small muted">${x.id} · ✅ LIBRE</div><h2>${x.city} — ${x.area}</h2><div class="muted">${x.sqm} m² · DPE ${x.dpe}</div></div><div><div class="price">${€(x.price)}</div><div class="muted small">${€(x.ppm)}/m²</div></div></div><div class="grid g4"><div class="metric"><span class="muted small">Score</span><br><b class="${c}">${x.s}/100</b></div><div class="metric"><span class="muted small">Loyer prudent</span><br><b>${€(x.rent)}</b></div><div class="metric"><span class="muted small">Brut</span><br><b>${pct(x.g)}</b></div><div class="metric"><span class="muted small">Charges</span><br><b>${€(x.cm)}/m</b></div></div><h3>${x.v}</h3><p>${x.notes.map(n=>'✓ '+n).join(' · ')}</p><div class="actions"><button class="btn" data-a="pass">✕ Passer</button><button class="btn" data-a="prev">←</button><button class="btn primary" data-a="deep">★ Creuser</button></div></section><aside><div class="why"><b>Pourquoi Houser Price™ ${€(x.h)} ?</b><div class="line"><span>Rendement cible</span><b>${€(x.yp)}</b></div><div class="line"><span>Valeur marché</span><b>${€(x.mp)}</b></div><div class="line"><span>Marché ajusté risques</span><b>${€(x.rap)}</b></div></div><div class="nego" style="margin-top:12px"><b>Plan pour l’avoir</b><h3>${x.mode}</h3><div class="line"><span>Offre d’ouverture</span><b>${€(x.open)}</b></div><div class="line"><span>Cible d’atterrissage</span><b>${€(x.h)}</b></div><div class="small">Écart vendeur → cible : ${(x.disc*100).toFixed(1)} %. Au-dessus de la cible, Houser préfère passer.</div></div><a class="btn" style="display:block;text-align:center;margin-top:12px;text-decoration:none" href="${x.source}" target="_blank">Voir l’annonce ↗</a></aside></article>`}
-function short(){let xs=listings.map(calc).filter(x=>decisions[x.id]==='deep').sort((a,b)=>b.s-a.s);return `<div class="card"><h2>À creuser</h2>${xs.length?xs.map(x=>`<div class="short"><span><b>${x.city} — ${x.area}</b><br><span class="muted small">${x.s}/100 · ${pct(x.g)} · charges ${€(x.cm)}/m</span></span><span><b>${€(x.price)}</b><br><span class="small">cible ${€(x.h)}</span></span></div>`).join(''):'Aucun bien sélectionné.'}</div>`}
-function render(){document.querySelector('#app').innerHTML=`<main class="app">${top()}${view==='criteria'?criteria():view==='short'?short():feed()}</main>`;bind()}
-function bind(){document.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{view=b.dataset.v;render()});document.querySelectorAll('[data-p]').forEach(i=>i.onchange=()=>{let k=i.dataset.p,v=Number(i.value);p[k]=k==='target'?v/100:v;localStorage.setItem('houserProfile',JSON.stringify(p));rerank();render()});document.querySelector('#all')?.addEventListener('change',e=>{showAll=e.target.checked;rerank();render()});document.querySelector('[data-a="prev"]')?.addEventListener('click',()=>{idx=(idx-1+ranked.length)%ranked.length;render()});document.querySelector('[data-a="pass"]')?.addEventListener('click',()=>{decisions[ranked[idx].id]='pass';localStorage.setItem('houserDecisions',JSON.stringify(decisions));idx=(idx+1)%ranked.length;render()});document.querySelector('[data-a="deep"]')?.addEventListener('click',()=>{decisions[ranked[idx].id]='deep';localStorage.setItem('houserDecisions',JSON.stringify(decisions));view='short';render()})}
-rerank();render();
-</script></body></html>
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#111827">
+  <title>Houser</title>
+  <style>
+    :root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#111827;background:#f5f7fb}
+    *{box-sizing:border-box}body{margin:0}.app{max-width:1120px;margin:auto;padding:20px}.top{display:flex;justify-content:space-between;gap:14px;align-items:center;margin-bottom:18px}.brand{display:flex;gap:10px;align-items:center}.logo{width:42px;height:42px;border-radius:13px;background:#111827;color:#fff;display:grid;place-items:center;font-size:22px}.tabs,.actions{display:flex;gap:8px;flex-wrap:wrap}.btn{border:1px solid #d1d5db;background:#fff;border-radius:11px;padding:10px 13px;font-weight:700;cursor:pointer;color:#111827}.btn.on,.btn.primary{background:#111827;color:#fff;border-color:#111827}.card{background:#fff;border:1px solid #e5e7eb;border-radius:18px;padding:17px}.grid{display:grid;gap:14px}.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g4{grid-template-columns:repeat(4,minmax(0,1fr))}.muted{color:#6b7280}.small{font-size:12px}.metric b{font-size:20px}.listing{display:grid;grid-template-columns:1.2fr .8fr;gap:14px}.title{display:flex;justify-content:space-between;gap:12px}.price{font-size:26px;font-weight:900}.good{color:#047857}.mid{color:#b45309}.bad{color:#b91c1c}.why,.nego{border-radius:14px;padding:14px}.why{background:#f9fafb;border:1px solid #e5e7eb}.nego{background:#111827;color:#fff}.line{display:flex;justify-content:space-between;gap:12px;margin:7px 0}.short{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #e5e7eb}.field label{display:block;font-size:12px;font-weight:800;margin-bottom:5px}input{width:100%;padding:10px;border:1px solid #d1d5db;border-radius:10px;font-size:15px;background:#fff}.status{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 9px;background:#ecfdf5;color:#065f46;font-size:12px;font-weight:800}.empty{padding:40px;text-align:center}.meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}.chip{padding:5px 8px;border-radius:999px;background:#f3f4f6;font-size:12px}.error{max-width:760px;margin:40px auto;padding:18px;border-radius:14px;background:#fff;border:1px solid #fecaca;color:#991b1b}
+    @media(max-width:800px){.listing,.g4,.g2{grid-template-columns:1fr}.top,.title{align-items:flex-start;flex-direction:column}.app{padding:12px}}
+  </style>
+</head>
+<body>
+<div id="app"><div class="app"><div class="card">Chargement de Houser…</div></div></div>
+<script>
+(function(){
+  'use strict';
+  const listings=[
+    {id:'H001',city:'Hœnheim',area:'Rue Aristide Briand',price:130000,sqm:51.37,dpe:'D',charges:2400,tax:500,rent:708,market:2255,free:true,copro:'unknown',works:0,notes:['Balcon/loggia','Cave','Libre immédiatement'],source:'https://www.orpi.com/annonce-vente-appartement-t2-hoenheim-67800-b818dd71-9d0e-4553-9896-b4ede0a819df/'},
+    {id:'H002',city:'Lingolsheim',area:'Écoquartier',price:134900,sqm:45.41,dpe:'B',charges:1058,tax:741,rent:604,market:2410,free:true,copro:'clean',works:0,notes:['Immeuble 2012','2 stationnements','DPE B'],source:'https://www.squarehabitat.fr/annonces/achat/bien/appartement/immobilier/grand-est/bas-rhin-67'},
+    {id:'H003',city:'Ostwald',area:'Rives du Bohrie',price:158000,sqm:48,dpe:'C',charges:1743,tax:750,rent:670,market:2662,free:true,copro:'clean',works:0,notes:['Résidence 2020','Tram','Terrasse + parking'],source:'https://www.seloger.com/annonces/achat/appartement/ostwald-67/est/273869061.htm'},
+    {id:'H004',city:'Bischheim',area:'Centre',price:129000,sqm:38,dpe:'C',charges:850,tax:700,rent:516,market:2551,free:true,copro:'clean',works:0,notes:['Petite copro','Terrasse','Bon état'],source:'https://www.hebdingimmobilier.fr/vente/10-bischheim/appartement/t2/2146-appartement-2-pieces-avec-terrasse-et-parking-immeuble-moderne-de-standing/'}
+  ];
+
+  let profile=readJson('houserProfile',{maxBudget:150000,target:0.065,maxCharges:140,maxChargesM2:35,down:25000});
+  let decisions=readJson('houserDecisions',{});
+  let view='feed';
+  let showAll=false;
+  let index=0;
+  let ranked=[];
+
+  function readJson(key,fallback){
+    try{const raw=localStorage.getItem(key);return raw?JSON.parse(raw):fallback}catch(e){return fallback}
+  }
+  function writeJson(key,value){try{localStorage.setItem(key,JSON.stringify(value))}catch(e){}}
+  function euro(n){return new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(Number.isFinite(n)?n:0)}
+  function pct(n){return ((Number.isFinite(n)?n:0)*100).toFixed(1)+' %'}
+  function clamp(n,min,max){return Math.max(min,Math.min(max,n))}
+
+  function calc(x){
+    const ppm=x.price/x.sqm;
+    const gross=x.rent*12/x.price;
+    const chargesMonthly=x.charges/12;
+    const chargesM2=x.charges/x.sqm;
+    const yieldPrice=x.rent*12/profile.target;
+    const marketPrice=x.market*x.sqm;
+    let riskFactor=1;
+    if(x.dpe==='E')riskFactor-=0.06;
+    if(x.copro==='unknown')riskFactor-=0.03;
+    if(chargesMonthly>profile.maxCharges)riskFactor-=0.04;
+    if(chargesMonthly>220)riskFactor-=0.08;
+    const riskAdjustedMarket=marketPrice*riskFactor-x.works;
+    const houserPrice=Math.max(0,Math.round(Math.min(yieldPrice,riskAdjustedMarket)/1000)*1000);
+    const discount=1-houserPrice/x.price;
+    const nonRecoverable=x.charges*0.35;
+    const vacancy=x.rent*12*0.03;
+    const maintenance=x.rent*12*0.05;
+    const netAnnual=x.rent*12-nonRecoverable-x.tax-vacancy-maintenance-120;
+    const netYield=netAnnual/(x.price+x.price*0.08+x.works);
+    let score=50;
+    score+=clamp((gross-0.055)*900,-18,18);
+    score+=clamp((netYield-0.035)*700,-12,12);
+    score+=clamp(((x.market-ppm)/x.market)*35,-12,12);
+    if(chargesMonthly<=100&&chargesM2<=28)score+=10;
+    else if(chargesMonthly<=profile.maxCharges&&chargesM2<=profile.maxChargesM2)score+=5;
+    else if(chargesMonthly<=220&&chargesM2<=50)score-=8;
+    else score-=20;
+    if(['A','B','C'].includes(x.dpe))score+=7;
+    else if(x.dpe==='D')score+=3;
+    else if(x.dpe==='E')score-=8;
+    else score-=25;
+    if(x.copro==='clean')score+=4; else if(x.copro==='unknown')score-=3; else score-=20;
+    if(x.price>profile.maxBudget)score-=10;
+    if(discount>0.18)score-=8;
+    score=Math.round(clamp(score,0,100));
+    let verdict=score>=72?'🟢 MATCH':score>=55?'🟠 À CREUSER':'🔴 PASSER';
+    if(!x.free||['F','G'].includes(x.dpe)||x.copro==='risk')verdict='🔴 PASSER';
+    const negotiation=discount<=0.05?'Réaliste':discount<=0.12?'Négociable':'Difficile aujourd’hui';
+    const opening=Math.round(houserPrice*(discount<=0.05?0.985:discount<=0.12?0.96:0.95)/1000)*1000;
+    return Object.assign({},x,{ppm,gross,chargesMonthly,chargesM2,yieldPrice,marketPrice,riskAdjustedMarket,houserPrice,discount,netAnnual,netYield,score,verdict,negotiation,opening});
+  }
+
+  function rerank(){
+    ranked=listings.map(calc).sort((a,b)=>b.score-a.score);
+    if(!showAll)ranked=ranked.filter(x=>x.score>=55);
+    if(index>=ranked.length)index=0;
+  }
+
+  function header(){
+    return '<div class="top"><div class="brand"><div class="logo">⌂</div><div><b style="font-size:24px">Houser</b><div class="muted small">Swipe properties, not problems.</div></div></div><div class="tabs">'+
+      tabButton('criteria','Mes critères')+tabButton('feed','Top matches')+tabButton('short','À creuser')+'</div></div>';
+  }
+  function tabButton(key,label){return '<button class="btn '+(view===key?'on':'')+'" data-view="'+key+'">'+label+'</button>'}
+
+  function criteriaView(){
+    return '<div class="grid g2"><section class="card"><div class="status">✓ Profil Mustapha chargé</div><h2>Critères Houser</h2><p class="muted">Bien libre obligatoire · Mourabaha · mobilité Strasbourg/Suisse.</p><div class="grid g2">'+
+      field('maxBudget','Budget max (€)',profile.maxBudget)+field('target','Rendement brut cible (%)',profile.target*100)+field('maxCharges','Charges cible max (€/mois)',profile.maxCharges)+field('maxChargesM2','Charges cible max (€/m²/an)',profile.maxChargesM2)+
+      '</div></section><section class="card"><h3>Kill switches</h3><p>🔴 Occupé · 🔴 DPE F/G · 🔴 procédure copro sérieuse · 🔴 gros travaux incompatibles Mourabaha · 🔴 charges anormalement hautes</p><p class="muted">Objectif : cash-flow proche de 0 ; effort ≤100 €/mois seulement si l’actif est vraiment qualitatif.</p><h3>Alternative</h3><p class="muted">Si le bien n’est pas assez bon pour immobiliser ~25 k€, l’argent reste disponible / investi sur l’ETF World Islamic.</p></section></div>';
+  }
+  function field(key,label,value){return '<div class="field"><label>'+label+'</label><input inputmode="decimal" data-profile="'+key+'" value="'+value+'"></div>'}
+
+  function feedView(){
+    if(!ranked.length)return '<div class="card empty"><h2>Aucun match suffisamment bon</h2><p class="muted">Houser préfère ne rien montrer plutôt que de te pousser vers un investissement moyen.</p><label class="small"><input style="width:auto" id="show-all" type="checkbox"> Voir aussi les dossiers rouges</label></div>';
+    const x=ranked[index];
+    const scoreClass=x.score>=72?'good':x.score>=55?'mid':'bad';
+    return '<div class="line"><b>Meilleurs biens d’abord</b><label class="small"><input style="width:auto" id="show-all" type="checkbox" '+(showAll?'checked':'')+'> voir aussi les rouges</label></div>'+ 
+      '<article class="listing"><section class="card"><div class="title"><div><div class="small muted">'+x.id+' · ✅ LIBRE</div><h2>'+x.city+' — '+x.area+'</h2><div class="meta"><span class="chip">'+x.sqm+' m²</span><span class="chip">DPE '+x.dpe+'</span><span class="chip">'+euro(x.ppm)+'/m²</span></div></div><div><div class="price">'+euro(x.price)+'</div></div></div>'+ 
+      '<div class="grid g4" style="margin-top:16px"><div class="metric"><span class="muted small">Score</span><br><b class="'+scoreClass+'">'+x.score+'/100</b></div><div class="metric"><span class="muted small">Loyer prudent</span><br><b>'+euro(x.rent)+'</b></div><div class="metric"><span class="muted small">Brut</span><br><b>'+pct(x.gross)+'</b></div><div class="metric"><span class="muted small">Charges</span><br><b>'+euro(x.chargesMonthly)+'/m</b></div></div>'+ 
+      '<h3>'+x.verdict+'</h3><p>'+x.notes.map(n=>'✓ '+n).join(' · ')+'</p><div class="actions"><button class="btn" data-action="pass">✕ Passer</button><button class="btn" data-action="prev">← Précédent</button><button class="btn primary" data-action="deep">★ Creuser</button></div></section>'+ 
+      '<aside><div class="why"><b>Pourquoi Houser Price™ = '+euro(x.houserPrice)+' ?</b><div class="line"><span>Prix compatible rendement</span><b>'+euro(x.yieldPrice)+'</b></div><div class="line"><span>Valeur marché estimée</span><b>'+euro(x.marketPrice)+'</b></div><div class="line"><span>Marché ajusté risques/charges</span><b>'+euro(x.riskAdjustedMarket)+'</b></div><div class="line"><span>Charges</span><b>'+euro(x.chargesMonthly)+'/m · '+x.chargesM2.toFixed(0)+' €/m²/an</b></div></div>'+ 
+      '<div class="nego" style="margin-top:12px"><b>Plan pour l’avoir</b><h3>'+x.negotiation+'</h3><div class="line"><span>Offre d’ouverture</span><b>'+euro(x.opening)+'</b></div><div class="line"><span>Cible d’atterrissage</span><b>'+euro(x.houserPrice)+'</b></div><div class="small">Écart vendeur → cible : '+(x.discount*100).toFixed(1)+' %. Si le vendeur reste nettement au-dessus, Houser préfère attendre ou passer.</div></div>'+ 
+      '<a class="btn" style="display:block;text-align:center;margin-top:12px;text-decoration:none" href="'+x.source+'" target="_blank" rel="noopener">Voir l’annonce ↗</a></aside></article>';
+  }
+
+  function shortlistView(){
+    const items=listings.map(calc).filter(x=>decisions[x.id]==='deep').sort((a,b)=>b.score-a.score);
+    return '<div class="card"><h2>À creuser</h2>'+(items.length?items.map(x=>'<div class="short"><span><b>'+x.city+' — '+x.area+'</b><br><span class="muted small">'+x.score+'/100 · '+pct(x.gross)+' · charges '+euro(x.chargesMonthly)+'/m</span></span><span><b>'+euro(x.price)+'</b><br><span class="small">cible '+euro(x.houserPrice)+'</span></span></div>').join(''):'<p class="muted">Aucun bien sélectionné pour l’instant.</p>')+'</div>';
+  }
+
+  function render(){
+    try{
+      document.getElementById('app').innerHTML='<main class="app">'+header()+(view==='criteria'?criteriaView():view==='short'?shortlistView():feedView())+'</main>';
+      bind();
+    }catch(err){
+      document.getElementById('app').innerHTML='<div class="error"><b>Houser a rencontré une erreur.</b><pre>'+String(err)+'</pre></div>';
+      console.error(err);
+    }
+  }
+
+  function bind(){
+    document.querySelectorAll('[data-view]').forEach(btn=>btn.addEventListener('click',()=>{view=btn.dataset.view;render()}));
+    document.querySelectorAll('[data-profile]').forEach(input=>input.addEventListener('change',()=>{
+      const key=input.dataset.profile; const value=Number(input.value);
+      if(!Number.isFinite(value))return;
+      profile[key]=key==='target'?value/100:value;
+      writeJson('houserProfile',profile);rerank();render();
+    }));
+    const show=document.getElementById('show-all');if(show)show.addEventListener('change',e=>{showAll=e.target.checked;rerank();render()});
+    const prev=document.querySelector('[data-action="prev"]');if(prev)prev.addEventListener('click',()=>{index=(index-1+ranked.length)%ranked.length;render()});
+    const pass=document.querySelector('[data-action="pass"]');if(pass)pass.addEventListener('click',()=>{decisions[ranked[index].id]='pass';writeJson('houserDecisions',decisions);index=(index+1)%ranked.length;render()});
+    const deep=document.querySelector('[data-action="deep"]');if(deep)deep.addEventListener('click',()=>{decisions[ranked[index].id]='deep';writeJson('houserDecisions',decisions);view='short';render()});
+  }
+
+  rerank();
+  render();
+})();
+</script>
+</body>
+</html>
