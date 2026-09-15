@@ -30,48 +30,59 @@
     const works=x.works||0;
     const totalCost=price*(1+PROFILE.acquisitionCostRate)+works;
     const financed=totalCost*(1-PROFILE.downShare);
-    const fFav=annuityFactor(0.04,20);
-    const fPrudent=annuityFactor(0.045,15);
-    const paymentFav=financed*fFav;
-    const paymentPrudent=financed*fPrudent;
+
+    // Headline = monthly payment pulled as low as reasonably possible in our proxy.
+    // This is intentionally an optimistic screening proxy, not a 570easi quote.
+    const fLow=annuityFactor(0.04,20);
+    const fStress=annuityFactor(0.045,15);
+    const paymentLow=financed*fLow;
+    const paymentStress=financed*fStress;
+
     const chargesOwnerMonthly=(chargesAnnual*PROFILE.nonRecoverableShare)/12;
     const taxMonthly=tax/12;
-    const vacancyMonthly=rent*PROFILE.vacancyRate;
-    const maintenanceMonthly=rent*PROFILE.maintenanceRate;
     const pnoMonthly=PROFILE.pnoYear/12;
-    const netBeforeFinance=rent-chargesOwnerMonthly-taxMonthly-vacancyMonthly-maintenanceMonthly-pnoMonthly;
-    const effortFav=paymentFav-netBeforeFinance;
-    const effortPrudent=paymentPrudent-netBeforeFinance;
+    const vacancyReserve=rent*PROFILE.vacancyRate;
+    const maintenanceReserve=rent*PROFILE.maintenanceRate;
+
+    // Effort courant = what really leaves the pocket in a normal occupied month.
+    const cashBeforeFinance=rent-chargesOwnerMonthly-taxMonthly-pnoMonthly;
+    const effortCurrent=paymentLow-cashBeforeFinance;
+
+    // Effort prudent = smooth in reserves for vacancy and maintenance.
+    const reserves=vacancyReserve+maintenanceReserve;
+    const effortPrudent=effortCurrent+reserves;
+    const effortStress=paymentStress-cashBeforeFinance+reserves;
+
     const gross=price?rent*12/price:0;
-    const netAnnual=netBeforeFinance*12;
+    const netAnnual=(cashBeforeFinance-reserves)*12;
     const netYield=totalCost?netAnnual/totalCost:0;
 
-    function breakEvenPrice(factor){
-      if(netBeforeFinance<=0)return 0;
-      const maxFinanced=netBeforeFinance/factor;
+    function breakEvenPrice(factor,monthlyNet){
+      if(monthlyNet<=0)return 0;
+      const maxFinanced=monthlyNet/factor;
       const maxTotalCost=maxFinanced/(1-PROFILE.downShare);
       return Math.max(0,(maxTotalCost-works)/(1+PROFILE.acquisitionCostRate));
     }
 
-    const breakEvenFav=breakEvenPrice(fFav);
-    const breakEvenPrudent=breakEvenPrice(fPrudent);
-    return {price,rent,chargesAnnual,tax,totalCost,paymentFav,paymentPrudent,chargesOwnerMonthly,taxMonthly,netBeforeFinance,effortFav,effortPrudent,gross,netYield,breakEvenFav,breakEvenPrudent};
+    const breakEvenCurrent=breakEvenPrice(fLow,cashBeforeFinance);
+    const breakEvenPrudent=breakEvenPrice(fLow,cashBeforeFinance-reserves);
+
+    return {price,rent,chargesAnnual,tax,totalCost,paymentLow,paymentStress,chargesOwnerMonthly,taxMonthly,pnoMonthly,vacancyReserve,maintenanceReserve,cashBeforeFinance,reserves,effortCurrent,effortPrudent,effortStress,gross,netYield,breakEvenCurrent,breakEvenPrudent};
   }
 
   function signed(n){return (n<=0?'-':'+')+euro(Math.abs(n));}
 
   function verdict(c){
-    if(c.effortFav<=0)return {cls:'decisionGood',title:'🟢 Rentable / autofinancé',action:'À faire : creuser en priorité. Le proxy favorable donne un cash-flow positif ou nul.'};
-    if(c.effortFav<=100)return {cls:'decisionMid',title:'🟠 Presque rentable',action:'À faire : creuser seulement si le bien est qualitatif et négocier vers le prix d’autofinancement.'};
-    return {cls:'decisionBad',title:'🔴 Pas rentable au prix actuel',action:'À faire : ne pas acheter à ce prix. Surveiller ou négocier vers le prix d’autofinancement.'};
+    if(c.effortCurrent<=0)return {cls:'decisionGood',title:'🟢 Autofinancement courant',action:'À faire : creuser en priorité. Sur un mois loué normal, le loyer couvre le financement et les charges propriétaire estimées.'};
+    if(c.effortCurrent<=100)return {cls:'decisionMid',title:'🟠 Très proche du neutre',action:'À faire : candidat sérieux. Vérifier les vraies charges et négocier vers le prix d’autofinancement.'};
+    return {cls:'decisionBad',title:'🔴 Effort trop élevé au prix actuel',action:'À faire : ne pas acheter à ce prix. Surveiller ou négocier vers le prix d’autofinancement.'};
   }
 
   function findCurrentListing(){
     const h1=document.querySelector('.feedhead h1');
     if(!h1)return null;
     const title=h1.textContent.trim();
-    return listings.find(x=>title.includes(x.city||'') && (!x.area || title.includes(x.area))) ||
-      listings.find(x=>title.includes(x.city||'')) || null;
+    return listings.find(x=>title.includes(x.city||'') && (!x.area || title.includes(x.area))) || listings.find(x=>title.includes(x.city||'')) || null;
   }
 
   function render(){
@@ -79,7 +90,7 @@
     if(!body)return;
     const x=findCurrentListing();
     if(!x)return;
-    const key=x.id+'|'+x.price+'|'+x.rentEstimateHC+'|'+x.chargesAnnual;
+    const key=x.id+'|'+x.price+'|'+x.rentEstimateHC+'|'+x.chargesAnnual+'|v2';
     if(key===lastKey && document.querySelector('.decisionSummary'))return;
     lastKey=key;
 
@@ -96,18 +107,22 @@
       </div>
       <div class="decisionNumbers">
         <div><span>Loyer estimé HC</span><b>${euro(c.rent)}/mois</b></div>
-        <div><span>Mensualité Mourabaha estimée</span><b>${euro(c.paymentFav)} à ${euro(c.paymentPrudent)}/mois</b><small>proxy favorable → prudent</small></div>
-        <div><span>Charges copro annoncées</span><b>${euro(totalChargesMonthly)}/mois</b><small>dont propriétaire estimé ~${euro(c.chargesOwnerMonthly)}/mois</small></div>
+        <div><span>Mensualité Mourabaha basse</span><b>${euro(c.paymentLow)}/mois</b><small>proxy long/favorable ; devis réel à confirmer</small></div>
+        <div><span>Charges copro annoncées</span><b>${euro(totalChargesMonthly)}/mois</b><small>part propriétaire estimée ~${euro(c.chargesOwnerMonthly)}/mois</small></div>
         <div><span>Taxe foncière</span><b>${euro(c.tax)}/an</b><small>~${euro(c.taxMonthly)}/mois</small></div>
-        <div><span>Rendement</span><b>${pct(c.gross)} brut · ${pct(c.netYield)} net</b><small>net exploitation avant financement</small></div>
-        <div><span>Effort mensuel estimé</span><b class="${c.effortFav<=0?'good':c.effortFav<=100?'mid':'bad'}">${signed(c.effortFav)} à ${signed(c.effortPrudent)}/mois</b><small>favorable → prudent</small></div>
+        <div><span>Rendement</span><b>${pct(c.gross)} brut · ${pct(c.netYield)} net</b><small>net exploitation avec réserves, avant financement</small></div>
+        <div><span>Effort courant</span><b class="${c.effortCurrent<=0?'good':c.effortCurrent<=100?'mid':'bad'}">${signed(c.effortCurrent)}/mois</b><small>Mourabaha + charges propriétaire + TF + PNO − loyer</small></div>
       </div>
       <div class="buyPriceBox">
         <div><span>Prix affiché</span><b>${euro(c.price)}</b></div>
-        <div class="buyTarget"><span>Prix max pour viser ~0 € d’effort</span><b>≈ ${euro(c.breakEvenFav)}</b><small>scénario favorable 20 ans / 4 % équivalent</small></div>
-        <div><span>Version prudente</span><b>≈ ${euro(c.breakEvenPrudent)}</b><small>15 ans / 4,5 % équivalent</small></div>
+        <div class="buyTarget"><span>Prix max pour ~0 € d’effort courant</span><b>≈ ${euro(c.breakEvenCurrent)}</b><small>avec mensualité basse proxy</small></div>
+        <div><span>Prix neutre prudent</span><b>≈ ${euro(c.breakEvenPrudent)}</b><small>en ajoutant réserves vacance + entretien</small></div>
       </div>
-      <p class="decisionFoot">Lecture simple : le prix d’autofinancement répond à “à combien dois-je acheter pour que le loyer couvre approximativement financement + charges propriétaire + taxe + vacance + entretien + PNO ?”. Ce sont des estimations, pas un devis 570easi.</p>`;
+      <div class="decisionNumbers" style="margin-top:10px">
+        <div><span>Effort prudent lissé</span><b>${signed(c.effortPrudent)}/mois</b><small>+ réserve vacance 3 % + entretien 5 %</small></div>
+        <div><span>Stress financement</span><b>${signed(c.effortStress)}/mois</b><small>proxy 15 ans / 4,5 % équivalent</small></div>
+      </div>
+      <p class="decisionFoot">Lecture simple : l’effort courant correspond à ce que le bien te coûte réellement sur un mois loué normal. Les charges de copro récupérables auprès du locataire ne sont pas comptées dans l’effort propriétaire ; Houser n’en retient provisoirement que 35 % tant que le décompte réel n’est pas disponible. L’effort prudent ajoute des réserves pour vacance et entretien. Le proxy de mensualité basse n’est pas un devis 570easi.</p>`;
 
     const propertyTop=body.querySelector('.propertyTop');
     if(propertyTop)propertyTop.insertAdjacentElement('afterend',block);
