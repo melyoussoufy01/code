@@ -31,8 +31,6 @@
     const totalCost=price*(1+PROFILE.acquisitionCostRate)+works;
     const financed=totalCost*(1-PROFILE.downShare);
 
-    // Headline = monthly payment pulled as low as reasonably possible in our proxy.
-    // This is intentionally an optimistic screening proxy, not a 570easi quote.
     const fLow=annuityFactor(0.04,20);
     const fStress=annuityFactor(0.045,15);
     const paymentLow=financed*fLow;
@@ -44,11 +42,8 @@
     const vacancyReserve=rent*PROFILE.vacancyRate;
     const maintenanceReserve=rent*PROFILE.maintenanceRate;
 
-    // Effort courant = what really leaves the pocket in a normal occupied month.
     const cashBeforeFinance=rent-chargesOwnerMonthly-taxMonthly-pnoMonthly;
     const effortCurrent=paymentLow-cashBeforeFinance;
-
-    // Effort prudent = smooth in reserves for vacancy and maintenance.
     const reserves=vacancyReserve+maintenanceReserve;
     const effortPrudent=effortCurrent+reserves;
     const effortStress=paymentStress-cashBeforeFinance+reserves;
@@ -73,9 +68,10 @@
   function signed(n){return (n<=0?'-':'+')+euro(Math.abs(n));}
 
   function verdict(c){
-    if(c.effortCurrent<=0)return {cls:'decisionGood',title:'🟢 Autofinancement courant',action:'À faire : creuser en priorité. Sur un mois loué normal, le loyer couvre le financement et les charges propriétaire estimées.'};
-    if(c.effortCurrent<=100)return {cls:'decisionMid',title:'🟠 Très proche du neutre',action:'À faire : candidat sérieux. Vérifier les vraies charges et négocier vers le prix d’autofinancement.'};
-    return {cls:'decisionBad',title:'🔴 Effort trop élevé au prix actuel',action:'À faire : ne pas acheter à ce prix. Surveiller ou négocier vers le prix d’autofinancement.'};
+    if(c.effortPrudent<=0)return {cls:'decisionGood',title:'🟢 Pépite · autofinancement prudent',action:'À faire : creuser en priorité. Même en lissant charges propriétaire, taxe, PNO, vacance et entretien, le bien reste neutre ou positif.'};
+    if(c.effortPrudent<=50)return {cls:'decisionGood',title:'🟢 Très solide',action:'À faire : creuser. L’effort prudent reste très faible ; vérifier les charges réelles et la Mourabaha.'};
+    if(c.effortPrudent<=100)return {cls:'decisionMid',title:'🟠 Correct seulement si actif supérieur',action:'À faire : garder uniquement si emplacement, qualité et revente sont vraiment supérieurs, sinon négocier davantage.'};
+    return {cls:'decisionBad',title:'🔴 Pas assez rentable au prix actuel',action:'À faire : passer ou attendre une baisse. Houser cherche une vraie pépite, pas un effort mensuel important.'};
   }
 
   function findCurrentListing(){
@@ -90,7 +86,7 @@
     if(!body)return;
     const x=findCurrentListing();
     if(!x)return;
-    const key=x.id+'|'+x.price+'|'+x.rentEstimateHC+'|'+x.chargesAnnual+'|v2';
+    const key=x.id+'|'+x.price+'|'+x.rentEstimateHC+'|'+x.chargesAnnual+'|strict-v3';
     if(key===lastKey && document.querySelector('.decisionSummary'))return;
     lastKey=key;
 
@@ -111,18 +107,18 @@
         <div><span>Charges copro annoncées</span><b>${euro(totalChargesMonthly)}/mois</b><small>part propriétaire estimée ~${euro(c.chargesOwnerMonthly)}/mois</small></div>
         <div><span>Taxe foncière</span><b>${euro(c.tax)}/an</b><small>~${euro(c.taxMonthly)}/mois</small></div>
         <div><span>Rendement</span><b>${pct(c.gross)} brut · ${pct(c.netYield)} net</b><small>net exploitation avec réserves, avant financement</small></div>
-        <div><span>Effort courant</span><b class="${c.effortCurrent<=0?'good':c.effortCurrent<=100?'mid':'bad'}">${signed(c.effortCurrent)}/mois</b><small>Mourabaha + charges propriétaire + TF + PNO − loyer</small></div>
+        <div><span>Effort prudent tout compris</span><b class="${c.effortPrudent<=0?'good':c.effortPrudent<=100?'mid':'bad'}">${signed(c.effortPrudent)}/mois</b><small>Mourabaha + charges propriétaire + TF + PNO + vacance + entretien − loyer</small></div>
       </div>
       <div class="buyPriceBox">
         <div><span>Prix affiché</span><b>${euro(c.price)}</b></div>
-        <div class="buyTarget"><span>Prix max pour ~0 € d’effort courant</span><b>≈ ${euro(c.breakEvenCurrent)}</b><small>avec mensualité basse proxy</small></div>
-        <div><span>Prix neutre prudent</span><b>≈ ${euro(c.breakEvenPrudent)}</b><small>en ajoutant réserves vacance + entretien</small></div>
+        <div class="buyTarget"><span>Prix max pour ~0 € d’effort prudent</span><b>≈ ${euro(c.breakEvenPrudent)}</b><small>c’est la vraie cible Houser</small></div>
+        <div><span>Prix neutre mois normal</span><b>≈ ${euro(c.breakEvenCurrent)}</b><small>hors provisions vacance + entretien</small></div>
       </div>
       <div class="decisionNumbers" style="margin-top:10px">
-        <div><span>Effort prudent lissé</span><b>${signed(c.effortPrudent)}/mois</b><small>+ réserve vacance 3 % + entretien 5 %</small></div>
-        <div><span>Stress financement</span><b>${signed(c.effortStress)}/mois</b><small>proxy 15 ans / 4,5 % équivalent</small></div>
+        <div><span>Effort mois normal</span><b>${signed(c.effortCurrent)}/mois</b><small>info secondaire : sans provisions vacance + entretien</small></div>
+        <div><span>Stress financement</span><b>${signed(c.effortStress)}/mois</b><small>proxy 15 ans / 4,5 % équivalent + réserves</small></div>
       </div>
-      <p class="decisionFoot">Lecture simple : l’effort courant correspond à ce que le bien te coûte réellement sur un mois loué normal. Les charges de copro récupérables auprès du locataire ne sont pas comptées dans l’effort propriétaire ; Houser n’en retient provisoirement que 35 % tant que le décompte réel n’est pas disponible. L’effort prudent ajoute des réserves pour vacance et entretien. Le proxy de mensualité basse n’est pas un devis 570easi.</p>`;
+      <p class="decisionFoot">Houser reste volontairement strict : l’indicateur principal inclut la part de copro non récupérable, la taxe foncière, la PNO et des provisions de vacance et d’entretien. Les charges récupérables locataire ne sont pas comptées comme coût propriétaire. Tant que le décompte réel n’est pas disponible, Houser estime provisoirement 35 % des charges de copro comme non récupérables. Le proxy Mourabaha n’est pas un devis 570easi.</p>`;
 
     const propertyTop=body.querySelector('.propertyTop');
     if(propertyTop)propertyTop.insertAdjacentElement('afterend',block);
