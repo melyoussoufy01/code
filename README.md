@@ -19,3 +19,5 @@ Le prototype est une application statique autonome. Ouvrir simplement `index.htm
 
 ## Publication
 Le workflow GitHub Pages de `.github/workflows/pages.yml` publie le site statique depuis le dépôt.
+
+Déploiement GitHub Pages activé.
