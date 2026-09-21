@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-09-21T04:44:03+02:00",
-  "scanStats": {"lastScanAt":"2026-09-21T04:44:03+02:00","candidatesExamined":32,"compatibleCount":10,"addedCount":1,"updatedCount":2,"matchesCount":0,"sourcesChecked":["seloger.com","orpi.com","bienici.com","leboncoin.fr","fnaim.fr"]},
+  "updatedAt": "2026-09-21T08:08:52+02:00",
+  "scanStats": {"lastScanAt":"2026-09-21T08:08:52+02:00","candidatesExamined":30,"compatibleCount":10,"addedCount":0,"updatedCount":3,"matchesCount":0,"sourcesChecked":["seloger.com","orpi.com","bienici.com","fnaim.fr","logic-immo.com","casagogo.fr","soh-immobilier.fr"]},
   "listings": [
     {"id":"H001","source":"ORPI","url":"https://www.orpi.com/annonce-vente-appartement-t2-hoenheim-67800-b818dd71-9d0e-4553-9896-b4ede0a819df/","city":"Hœnheim","area":"Rue Aristide Briand","type":"T2","surface":51.37,"price":125000,"dpe":"D","chargesAnnual":2200,"propertyTax":500,"rentEstimateHC":720,"marketPriceM2":2255,"free":true,"coproStatus":"unknown","works":0,"firstSeen":"2026-09-15","lastSeen":"2026-09-21","priceHistory":[{"date":"2026-09-15","price":125000}],"notes":["Balcon/loggia","Cave","Libre immédiatement","Charges annuelles 2 200 €, chauffage/eaux inclus à clarifier"],"images":[]},
     {"id":"H002","source":"Square Habitat","url":"https://www.squarehabitat.fr/annonces/achat/bien/appartement/immobilier/grand-est/bas-rhin-67","city":"Lingolsheim","area":"Écoquartier","type":"T2","surface":45.41,"price":134900,"dpe":"B","chargesAnnual":1058,"propertyTax":741,"rentEstimateHC":604,"marketPriceM2":2410,"free":true,"coproStatus":"clean","works":0,"firstSeen":"2026-09-15","lastSeen":"2026-09-20","priceHistory":[{"date":"2026-09-15","price":134900}],"notes":["Immeuble 2012","2 stationnements","Charges dont 640 € récupérables confirmés"],"images":[]},
