@@ -23,7 +23,7 @@
   let decisions={};
   try{decisions=JSON.parse(localStorage.getItem('houserDecisionsV2')||localStorage.getItem('houserDecisions')||'{}')}catch{decisions={}}
   let listings=[];
-  let view='feed';
+  let view='ranking';
   let detailId=null;
   let detailReturn='feed';
   let activeImage=0;
@@ -118,10 +118,24 @@
   function header(){
     const c=counts();
     return `<header class="top"><div class="brand"><div class="logo">⌂</div><div><b>Houser</b><div class="muted small">Le chasseur locatif calibré pour toi.</div></div></div><nav class="tabs">
-      ${tab('feed','Nouveaux · '+c.new)}${tab('deep','À creuser · '+c.deep)}${tab('pass','Passés · '+c.pass)}${tab('base','Base · '+listings.length)}${tab('criteria','Mes critères')}
+      ${tab('ranking','🏆 Classement')}${tab('feed','Nouveaux · '+c.new)}${tab('deep','À creuser · '+c.deep)}${tab('pass','Passés · '+c.pass)}${tab('base','Base · '+listings.length)}${tab('criteria','Mes critères')}
     </nav></header>`;
   }
   function tab(k,l){return `<button class="btn ${view===k&&!detailId?'on':''}" data-view="${k}">${l}</button>`}
+
+  function rankingView(){
+    const eligible=listings.filter(x=>!x.hardBlock);
+    const ranked=eligible.map(x=>{
+      const financed=Math.max(0,x.totalCost-profile.downPayment);
+      const payment=annuity(financed,.04,20);
+      const operating=(x.rent*12-x.nonRecoverable-x.tax-x.rent*12*(profile.vacancyRate+profile.maintenanceRate)-profile.pnoYear)/12;
+      const effort=payment-operating;
+      const normal=effort-x.rent*(profile.vacancyRate+profile.maintenanceRate);
+      return {...x,rankingEffort:effort,rankingNormal:normal,rankingPayment:payment};
+    }).sort((a,b)=>a.rankingEffort-b.rankingEffort||b.score-a.score);
+    if(!ranked.length)return '<section class="card empty">Aucun bien éligible dans la base.</section>';
+    return `<div class="pageIntro"><div class="eyebrow">COMPARATEUR HOUSER</div><h1>🏆 Classement des biens</h1><p class="muted">Tri par effort prudent croissant · Apport ${euro(profile.downPayment)} · 20 ans / 4 % équivalent non contractuel · Frais d’acquisition estimés à ${Math.round(profile.acquisitionCostRate*100)} % inclus dans le coût du projet. Charges non récupérables estimées à ${Math.round(profile.nonRecoverableShare*100)} % si non détaillées.</p></div><div class="card rankingScroll"><table class="rankingTable"><thead><tr><th>#</th><th>Bien</th><th>Prix</th><th>DPE</th><th>Loyer HC</th><th>Effort prudent</th><th>Mois normal</th><th></th></tr></thead><tbody>${ranked.map((x,i)=>`<tr><td><b>${i+1}</b></td><td><strong>${esc(x.city)} · ${esc(x.area||'')}</strong><small>${esc(x.type||'T2')} · ${x.sqm} m² · ${euro(x.ppm)}/m²</small></td><td>${euro(x.price)}</td><td>${esc(x.dpe||'?')}</td><td>${euro(x.rent)}</td><td class="${x.rankingEffort<=0?'good':x.rankingEffort<=50?'good':x.rankingEffort<=100?'mid':'bad'}"><b>${signedEuro(x.rankingEffort)}/mois</b></td><td>${signedEuro(x.rankingNormal)}</td><td><button class="btn" data-review="${esc(x.id)}" data-return="ranking">Détails →</button></td></tr>`).join('')}</tbody></table></div><p class="muted small">Classement indicatif, sans vérification de disponibilité en temps réel. La fiche détaillée peut encore utiliser un ancien mode de calcul.</p>`;
+  }
 
   function feedView(){
     const q=listings.filter(x=>!decisions[x.id]&&!x.hardBlock).sort((a,b)=>a.effortFav-b.effortFav||b.score-a.score);
@@ -217,6 +231,7 @@
   function render(){
     let content;
     if(detailId){const x=listings.find(x=>x.id===detailId);content=x?propertyDetail(x,false):'<section class="card empty">Bien introuvable.</section>'}
+    else if(view==='ranking')content=rankingView();
     else if(view==='deep')content=archiveView('deep');
     else if(view==='pass')content=archiveView('pass');
     else if(view==='base')content=baseView();
