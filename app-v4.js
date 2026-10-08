@@ -23,7 +23,7 @@
   let decisions={};
   try{decisions=JSON.parse(localStorage.getItem('houserDecisionsV2')||localStorage.getItem('houserDecisions')||'{}')}catch{decisions={}}
   let listings=[];
-  let view='ranking';
+  let view='feed';
   let detailId=null;
   let detailReturn='feed';
   let activeImage=0;
@@ -118,7 +118,7 @@
   function header(){
     const c=counts();
     return `<header class="top"><div class="brand"><div class="logo">⌂</div><div><b>Houser</b><div class="muted small">Le chasseur locatif calibré pour toi.</div></div></div><nav class="tabs">
-      ${tab('ranking','🏆 Classement')}${tab('feed','Nouveaux · '+c.new)}${tab('deep','À creuser · '+c.deep)}${tab('pass','Passés · '+c.pass)}${tab('base','Base · '+listings.length)}${tab('criteria','Mes critères')}
+      ${tab('feed','À voir · '+c.new)}${tab('deep','À surveiller · '+c.deep)}${tab('pass','Écartés · '+c.pass)}${tab('criteria','Mes critères')}
     </nav></header>`;
   }
   function tab(k,l){return `<button class="btn ${view===k&&!detailId?'on':''}" data-view="${k}">${l}</button>`}
@@ -137,19 +137,21 @@
     return `<div class="pageIntro"><div class="eyebrow">COMPARATEUR HOUSER</div><h1>🏆 Classement des biens</h1><p class="muted">Tri par effort prudent croissant · Apport ${euro(profile.downPayment)} · 20 ans / 4 % équivalent non contractuel · Frais d’acquisition estimés à ${Math.round(profile.acquisitionCostRate*100)} % inclus dans le coût du projet. Charges non récupérables estimées à ${Math.round(profile.nonRecoverableShare*100)} % si non détaillées.</p></div><div class="card rankingScroll"><table class="rankingTable"><thead><tr><th>#</th><th>Bien</th><th>Prix</th><th>DPE</th><th>Loyer HC</th><th>Effort prudent</th><th>Mois normal</th><th></th></tr></thead><tbody>${ranked.map((x,i)=>`<tr><td><b>${i+1}</b></td><td><strong>${esc(x.city)} · ${esc(x.area||'')}</strong><small>${esc(x.type||'T2')} · ${x.sqm} m² · ${euro(x.ppm)}/m²</small></td><td>${euro(x.price)}</td><td>${esc(x.dpe||'?')}</td><td>${euro(x.rent)}</td><td class="${x.rankingEffort<=0?'good':x.rankingEffort<=50?'good':x.rankingEffort<=100?'mid':'bad'}"><b>${signedEuro(x.rankingEffort)}/mois</b></td><td>${signedEuro(x.rankingNormal)}</td><td><button class="btn" data-review="${esc(x.id)}" data-return="ranking">Détails →</button></td></tr>`).join('')}</tbody></table></div><p class="muted small">Classement indicatif, sans vérification de disponibilité en temps réel. La fiche détaillée peut encore utiliser un ancien mode de calcul.</p>`;
   }
 
-  function feedView(){
-    const q=listings.filter(x=>!decisions[x.id]&&!x.hardBlock).sort((a,b)=>a.effortFav-b.effortFav||b.score-a.score);
-    if(!q.length)return `<section class="card empty"><h2>Aucun nouveau candidat</h2><p class="muted">Les biens déjà décidés restent accessibles dans À creuser et Passés. Houser Watch continue d’alimenter la base.</p></section>`;
-    return propertyDetail(q[0],true);
+  function cardEffort(x){const financed=Math.max(0,x.totalCost-profile.downPayment);return annuity(financed,.04,20)-x.netBeforeFinance;}
+  function miniCard(x,i){
+    const effort=cardEffort(x),tone=effort<=50?'good':effort<=100?'mid':'bad';
+    const notes=(x.notes||[]).filter(n=>typeof n==='string').slice(0,2);
+    const issue=x.dpe==='E'?'DPE E : travaux futurs à anticiper':x.coproStatus==='unknown'?'Copropriété à vérifier':x.chargesMonthly>140?'Charges de copro élevées':'Vérifier la rue et la demande locative';
+    return `<article class="card miniCard"><div class="miniIcon" aria-hidden="true">⌂</div><div class="miniBody"><div class="miniHeading"><div><div class="eyebrow">N° ${i+1} · ${esc(x.type||'Appartement')} · ${x.sqm} m² · DPE ${esc(x.dpe||'?')}</div><h2>${esc(x.city)} <span class="muted">· ${esc(x.area||'')}</span></h2></div><div class="miniPrice">${euro(x.price)}</div></div><div class="miniEffort ${tone}">${effort<=0?'Excédent estimé de '+euro(-effort):'Environ '+euro(effort)+' / mois à ajouter'}</div><div class="miniTags">${notes.map(n=>`<span>✓ ${esc(n)}</span>`).join('')}<span class="miniCaution">! ${esc(issue)}</span></div><div class="miniActions"><button class="btn primary" data-review="${esc(x.id)}" data-return="${view}">Voir les détails</button><button class="btn" data-decision="deep" data-id="${esc(x.id)}">☆ Surveiller</button><button class="btn ghost" data-decision="pass" data-id="${esc(x.id)}">Écarter</button><a class="miniLink" href="${esc(x.url||'#')}" target="_blank" rel="noopener noreferrer">Annonce ↗</a></div></div></article>`;
   }
+  function miniList(items,title,subtitle){
+    if(!items.length)return `<section class="card empty"><h2>${title}</h2><p class="muted">Aucun bien ici pour l'instant.</p></section>`;
+    const ranked=[...items].sort((a,b)=>cardEffort(a)-cardEffort(b)||b.score-a.score);
+    return `<div class="pageIntro"><div class="eyebrow">HOUSER · SÉLECTION</div><h1>${title}</h1><p class="muted">${subtitle}</p></div><div class="miniList">${ranked.map(miniCard).join('')}</div><p class="muted small">Estimations indicatives avec ${euro(profile.downPayment)} d'apport, frais d'acquisition estimés inclus, financement équivalent 20 ans / 4 %. Vérifier les annonces et les conditions réelles avant toute décision.</p>`;
+  }
+  function feedView(){return miniList(listings.filter(x=>!decisions[x.id]&&!x.hardBlock),'Les biens qui valent le détour','Un prix, un effort mensuel, l’essentiel. Les calculs sont accessibles au clic.');}
 
-  function archiveView(kind){
-    const items=listings.filter(x=>decisions[x.id]===kind).sort((a,b)=>a.effortFav-b.effortFav||b.score-a.score);
-    const title=kind==='deep'?'Biens à creuser':'Biens passés';
-    const copy=kind==='deep'?'Ta shortlist. Tu peux rouvrir le débrief complet à tout moment.':'Historique des biens écartés. Rien n’est perdu : tu peux revoir l’analyse ou changer d’avis.';
-    if(!items.length)return `<section class="card empty"><h2>${title}</h2><p class="muted">Aucun bien ici pour l’instant.</p></section>`;
-    return `<div class="pageIntro"><div class="eyebrow">HISTORIQUE</div><h1>${title}</h1><p class="muted">${copy}</p></div><div class="archiveGrid">${items.map(archiveCard).join('')}</div>`;
-  }
+  function archiveView(kind){return miniList(listings.filter(x=>decisions[x.id]===kind),kind==='deep'?'À surveiller':'Biens écartés',kind==='deep'?'Les annonces que tu souhaites suivre.':'Les annonces mises de côté, toujours consultables.');}
 
   function archiveCard(x){
     const effortClass=x.effortFav<=0?'good':x.effortFav<=100?'mid':'bad';
