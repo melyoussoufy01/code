@@ -10,3 +10,6 @@
 .archivePhoto{max-height:105px;overflow:hidden}
 .archivePhoto img{width:100%;height:105px;object-fit:cover}
 @media(max-width:900px){.property{grid-template-columns:1fr}.propertyBody{grid-column:1;grid-row:1}.property>.gallery{grid-column:1;grid-row:2;margin:0 20px 20px;height:130px}.property .heroImage{height:130px}}
+
+/* Ranked property comparison */
+.rankingScroll{overflow-x:auto;padding:8px}.rankingTable{width:100%;border-collapse:collapse;min-width:850px;text-align:left}.rankingTable th{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#64748b;background:#f8fafc}.rankingTable td,.rankingTable th{padding:14px 12px;border-bottom:1px solid #e5e7eb;white-space:nowrap}.rankingTable td:nth-child(2){white-space:normal;min-width:185px}.rankingTable td small{display:block;margin-top:4px;color:#64748b}.rankingTable tbody tr:hover{background:#f8fafc}.rankingTable .btn{padding:7px 10px;font-size:12px}
